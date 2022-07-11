@@ -1,20 +1,11 @@
 import './css/styles.css';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 let debounce = require('lodash.debounce');
-
+import { fetchCountries } from './js/fetch';
 const DEBOUNCE_DELAY = 300;
-function fetchCountries(name) {
-  return fetch(
-    `https://restcountries.com/v3.1/name/${name}?fields=name,capital,population,flags,languages `
-  ).then(response => {
-    if (!response.ok) {
-      throw new Error(response.status);
-    }
-    return response.json();
-  });
-}
 const inputEl = document.querySelector('#search-box');
 const countryList = document.querySelector('.country-list');
+
 function createMarkup(countrie) {
   const mark = countrie
     .map(({ capital, flags, languages, name, population }) => {
@@ -39,27 +30,32 @@ function createMarkupList(countrie) {
   countryList.innerHTML = mark;
   console.log(mark);
 }
-
 inputEl.addEventListener(
   'input',
   debounce(e => {
     e.preventDefault();
-    countryList.innerHTML = '';
-    fetchCountries(e.target.value.trim())
-      .then(countrie => {
-        if (countrie.length > 1 && countrie.length <= 10) {
-          createMarkupList(countrie);
-        }
-        if (countrie.length === 1) {
-          createMarkup(countrie);
-        }
-        if (countrie.length > 10) {
-          Notify.info('please more specific name');
-        }
-      })
 
-      .catch(error => {
-        Notify.failure('Oops, there is no country with that name');
-      });
-  }, 300)
+    if (e.target.value.trim() !== '') {
+      fetchCountries(e.target.value.trim())
+        .then(countrie => {
+          if (countrie.length > 1 && countrie.length <= 10) {
+            createMarkupList(countrie);
+          }
+          if (countrie.length === 1) {
+            createMarkup(countrie);
+          }
+          if (countrie.length > 10) {
+            Notify.info('please more specific name');
+          }
+        })
+
+        .catch(error => {
+          Notify.failure('Oops, there is no country with that name');
+        });
+    } else {
+      e.target.value = '';
+      countryList.innerHTML = '';
+      Notify.warning(' is empty!');
+    }
+  }, DEBOUNCE_DELAY)
 );
